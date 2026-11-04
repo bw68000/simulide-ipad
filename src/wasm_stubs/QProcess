@@ -1,0 +1,53 @@
+// WebAssembly stub: browsers cannot launch external programs.
+// Every process "fails to start", so compiler/debugger/QEMU features
+// report an error instead of crashing.
+#pragma once
+#include <QtCore/qprocess.h>   // QProcessEnvironment (available on wasm)
+#include <QObject>
+#include <QByteArray>
+#include <QString>
+#include <QStringList>
+
+class QProcess : public QObject
+{
+    public:
+        enum ProcessState { NotRunning, Starting, Running };
+        enum ExitStatus { NormalExit, CrashExit };
+        enum ProcessError { FailedToStart, Crashed, Timedout, ReadError, WriteError, UnknownError };
+        enum ProcessChannelMode { SeparateChannels, MergedChannels, ForwardedChannels, ForwardedOutputChannel, ForwardedErrorChannel };
+
+        explicit QProcess( QObject* parent = nullptr ) : QObject( parent ) {}
+
+        void start( const QString&, const QStringList& = {}, int = 0 ) {}
+        void startCommand( const QString&, int = 0 ) {}
+        static bool startDetached( const QString&, const QStringList& = {}, const QString& = {}, qint64* = nullptr ) { return false; }
+        static int  execute( const QString&, const QStringList& = {} ) { return -2; }
+
+        bool waitForStarted( int = 30000 )  { return false; }
+        bool waitForFinished( int = 30000 ) { return false; }
+        bool waitForReadyRead( int = 30000 ){ return false; }
+
+        QByteArray readAllStandardOutput() { return {}; }
+        QByteArray readAllStandardError()  { return {}; }
+        QByteArray readAll()  { return {}; }
+        QByteArray readLine( qint64 = 0 ) { return {}; }
+        bool canReadLine() const { return false; }
+        qint64 write( const QByteArray& ) { return -1; }
+        qint64 write( const char* ) { return -1; }
+        void closeWriteChannel() {}
+        void close() {}
+        void kill() {}
+        void terminate() {}
+
+        void setWorkingDirectory( const QString& ) {}
+        void setProcessEnvironment( const QProcessEnvironment& ) {}
+        void setProcessChannelMode( ProcessChannelMode ) {}
+        void setProgram( const QString& ) {}
+        void setArguments( const QStringList& ) {}
+
+        ProcessState state() const { return NotRunning; }
+        ExitStatus exitStatus() const { return CrashExit; }
+        ProcessError error() const { return FailedToStart; }
+        int exitCode() const { return -1; }
+        QString errorString() const { return QStringLiteral("Running external programs is not supported in the browser version"); }
+};

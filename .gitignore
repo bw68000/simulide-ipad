@@ -1,0 +1,4 @@
+resources/qm/*.*
+build_wasm/out/
+build_wasm/executables/
+__pycache__/

@@ -1,0 +1,58 @@
+name: Web build (iPad / browser)
+
+on:
+  push:
+    branches: [ ipad-wasm, main, master ]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"   # weekly: refresh the component sets mirror
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt 6.8.3 (host + WebAssembly)
+        run: |
+          pip install aqtinstall==3.2.1
+          aqt install-qt linux desktop 6.8.3 linux_gcc_64 -O "$HOME/qt"
+          aqt install-qt all_os wasm 6.8.3 wasm_singlethread -m qtmultimedia -O "$HOME/qt"
+
+      - name: Install Emscripten 3.1.56
+        run: |
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$HOME/emsdk"
+          "$HOME/emsdk/emsdk" install 3.1.56
+          "$HOME/emsdk/emsdk" activate 3.1.56
+
+      - name: Build
+        run: |
+          source "$HOME/emsdk/emsdk_env.sh"
+          build_wasm/build.sh "$HOME/qt/6.8.3" "$RUNNER_TEMP/build" "$RUNNER_TEMP/dist"
+
+      - name: Mirror component sets from simulide.com
+        continue-on-error: true
+        run: python3 build_wasm/tools/mirror_components.py "$RUNNER_TEMP/dist"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
